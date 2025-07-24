@@ -41,10 +41,10 @@ class PusaVideoDemo:
         
     def load_lora_and_get_pipe(self, pipe_type, lora_path, lora_alpha):
         """Load LoRA and return appropriate pipeline"""
-        self.load_models()
-        
-        # Load LoRA
-        self.model_manager.load_lora(lora_path, lora_alpha=lora_alpha)
+
+        if self.model_manager is None:
+            self.load_models()
+            self.model_manager.load_lora(lora_path, lora_alpha=lora_alpha)
         
         if pipe_type == "multi_frames":
             pipe = PusaMultiFramesPipeline.from_model_manager(self.model_manager, torch_dtype=torch.bfloat16, device=self.device)
