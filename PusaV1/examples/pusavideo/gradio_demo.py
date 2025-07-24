@@ -9,7 +9,6 @@ import cv2
 import numpy as np
 from diffsynth import ModelManager, PusaMultiFramesPipeline, PusaV2VPipeline, WanVideoPusaPipeline, save_video
 import tempfile
-import argparse
 
 class PusaVideoDemo:
     def __init__(self):
@@ -22,14 +21,6 @@ class PusaVideoDemo:
         self.output_dir = "outputs"
         os.makedirs(self.output_dir, exist_ok=True)
         
-    def _log_progress(self, progress, value, desc):
-        """Helper to handle progress logging for both Gradio and CLI."""
-        if progress:
-            progress(value, desc=desc)
-        else:
-            # Simple print for CLI mode
-            print(f"Progress: {int(value * 100)}% - {desc}")
-
     def load_models(self):
         """Load all models once for efficiency"""
         if self.model_manager is None:
@@ -50,10 +41,10 @@ class PusaVideoDemo:
         
     def load_lora_and_get_pipe(self, pipe_type, lora_path, lora_alpha):
         """Load LoRA and return appropriate pipeline"""
-        self.load_models()
-        
-        # Load LoRA
-        self.model_manager.load_lora(lora_path, lora_alpha=lora_alpha)
+
+        if self.model_manager is None:
+            self.load_models()
+            self.model_manager.load_lora(lora_path, lora_alpha=lora_alpha)
         
         if pipe_type == "multi_frames":
             pipe = PusaMultiFramesPipeline.from_model_manager(self.model_manager, torch_dtype=torch.bfloat16, device=self.device)
@@ -118,11 +109,11 @@ class PusaVideoDemo:
                           lora_alpha, num_inference_steps, negative_prompt, progress=gr.Progress()):
         """Generate video from single image (I2V)"""
         try:
-            self._log_progress(progress, 0.1, "Loading models...")
+            progress(0.1, desc="Loading models...")
             lora_path = "./model_zoo/PusaV1/pusa_v1.pt"
             pipe = self.load_lora_and_get_pipe("multi_frames", lora_path, lora_alpha)
             
-            self._log_progress(progress, 0.2, "Processing input image...")
+            progress(0.2, desc="Processing input image...")
             
             # Process single image for I2V
             if image_path is None:
@@ -135,7 +126,7 @@ class PusaVideoDemo:
             # I2V always uses position 0 (first frame)
             multi_frame_images = {0: (processed_image, float(noise_multiplier))}
             
-            self._log_progress(progress, 0.4, "Generating video...")
+            progress(0.4, desc="Generating video...")
             video = pipe(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
@@ -145,28 +136,26 @@ class PusaVideoDemo:
                 seed=0, tiled=True
             )
             
-            self._log_progress(progress, 0.9, "Saving video...")
+            progress(0.9, desc="Saving video...")
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             video_filename = os.path.join(self.output_dir, f"i2v_output_{timestamp}_noise_{noise_multiplier}_alpha_{lora_alpha}.mp4")
             save_video(video, video_filename, fps=25, quality=5)
             
-            self._log_progress(progress, 1.0, "Complete!")
+            progress(1.0, desc="Complete!")
             return video_filename, f"Video generated successfully! Saved to {video_filename}"
             
         except Exception as e:
-            if not progress:
-                print(f"Error: {str(e)}")
             return None, f"Error: {str(e)}"
 
     def generate_multi_frames_video(self, image1, image2, image3, num_imgs, prompt, cond_position, noise_multipliers, 
                                    lora_alpha, num_inference_steps, negative_prompt, progress=gr.Progress()):
         """Generate video from multiple frames (Start-End, Multi-frame)"""
         try:
-            self._log_progress(progress, 0.1, "Loading models...")
+            progress(0.1, desc="Loading models...")
             lora_path = "./model_zoo/PusaV1/pusa_v1.pt"
             pipe = self.load_lora_and_get_pipe("multi_frames", lora_path, lora_alpha)
             
-            self._log_progress(progress, 0.2, "Processing input images...")
+            progress(0.2, desc="Processing input images...")
             
             # Parse conditioning positions and noise multipliers
             cond_pos_list = [int(x.strip()) for x in cond_position.split(',')]
@@ -194,7 +183,7 @@ class PusaVideoDemo:
                 for cond_pos, img, noise_mult in zip(cond_pos_list, processed_images, noise_mult_list)
             }
             
-            self._log_progress(progress, 0.4, "Generating video...")
+            progress(0.4, desc="Generating video...")
             video = pipe(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
@@ -204,28 +193,26 @@ class PusaVideoDemo:
                 seed=0, tiled=True
             )
             
-            self._log_progress(progress, 0.9, "Saving video...")
+            progress(0.9, desc="Saving video...")
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             video_filename = os.path.join(self.output_dir, f"multi_frame_output_{timestamp}.mp4")
             save_video(video, video_filename, fps=25, quality=5)
             
-            self._log_progress(progress, 1.0, "Complete!")
+            progress(1.0, desc="Complete!")
             return video_filename, f"Video generated successfully! Saved to {video_filename}"
             
         except Exception as e:
-            if not progress:
-                print(f"Error: {str(e)}")
             return None, f"Error: {str(e)}"
 
     def generate_v2v_video(self, video_path, prompt, cond_position, noise_multipliers,
                           lora_alpha, num_inference_steps, negative_prompt, progress=gr.Progress()):
         """Generate video from video (V2V completion, extension)"""
         try:
-            self._log_progress(progress, 0.1, "Loading models...")
+            progress(0.1, desc="Loading models...")
             lora_path = "./model_zoo/PusaV1/pusa_v1.pt"
             pipe = self.load_lora_and_get_pipe("v2v", lora_path, lora_alpha)
             
-            self._log_progress(progress, 0.2, "Processing input video...")
+            progress(0.2, desc="Processing input video...")
             
             # Parse conditioning positions and noise multipliers
             cond_pos_list = [int(x.strip()) for x in cond_position.split(',')]
@@ -234,7 +221,7 @@ class PusaVideoDemo:
             # Process video
             conditioning_video = self.process_video_frames(video_path)
             
-            self._log_progress(progress, 0.4, "Generating video...")
+            progress(0.4, desc="Generating video...")
             video = pipe(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
@@ -246,29 +233,27 @@ class PusaVideoDemo:
                 seed=0, tiled=True
             )
             
-            self._log_progress(progress, 0.9, "Saving video...")
+            progress(0.9, desc="Saving video...")
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             output_filename = os.path.basename(video_path).split('.')[0]
             video_filename = os.path.join(self.output_dir, f"v2v_{output_filename}_{timestamp}.mp4")
             save_video(video, video_filename, fps=25, quality=5)
             
-            self._log_progress(progress, 1.0, "Complete!")
+            progress(1.0, desc="Complete!")
             return video_filename, f"Video generated successfully! Saved to {video_filename}"
             
         except Exception as e:
-            if not progress:
-                print(f"Error: {str(e)}")
             return None, f"Error: {str(e)}"
 
     def generate_t2v_video(self, prompt, lora_alpha, num_inference_steps, 
                           negative_prompt, progress=gr.Progress()):
         """Generate video from text prompt"""
         try:
-            self._log_progress(progress, 0.1, "Loading models...")
+            progress(0.1, desc="Loading models...")
             lora_path = "./model_zoo/PusaV1/pusa_v1.pt"
             pipe = self.load_lora_and_get_pipe("t2v", lora_path, lora_alpha)
             
-            self._log_progress(progress, 0.3, "Generating video...")
+            progress(0.3, desc="Generating video...")
             video = pipe(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
@@ -277,17 +262,15 @@ class PusaVideoDemo:
                 seed=0, tiled=True
             )
             
-            self._log_progress(progress, 0.9, "Saving video...")
+            progress(0.9, desc="Saving video...")
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             video_filename = os.path.join(self.output_dir, f"t2v_output_{timestamp}.mp4")
             save_video(video, video_filename, fps=25, quality=5)
             
-            self._log_progress(progress, 1.0, "Complete!")
+            progress(1.0, desc="Complete!")
             return video_filename, f"Video generated successfully! Saved to {video_filename}"
             
         except Exception as e:
-            if not progress:
-                print(f"Error: {str(e)}")
             return None, f"Error: {str(e)}"
 
 def create_demo():
@@ -646,7 +629,7 @@ def create_demo():
                                 info="Controls temporal consistency (1-2 recommended)"
                             )
                             steps_i2v = gr.Slider(
-                                minimum=1, maximum=50, value=10, step=5,
+                                minimum=10, maximum=50, value=10, step=5,
                                 label="Inference Steps"
                             )
                     
@@ -739,7 +722,7 @@ def create_demo():
                                 info="Controls temporal consistency (1-2 recommended)"
                             )
                             steps_multi = gr.Slider(
-                                minimum=1, maximum=50, value=10, step=5,
+                                minimum=10, maximum=50, value=10, step=5,
                                 label="Inference Steps"
                             )
                     
@@ -826,7 +809,7 @@ def create_demo():
                                 label="LoRA Alpha"
                             )
                             steps_v2v = gr.Slider(
-                                minimum=1, maximum=50, value=10, step=5,
+                                minimum=10, maximum=50, value=10, step=5,
                                 label="Inference Steps"
                             )
                     
@@ -903,7 +886,7 @@ def create_demo():
                                 info="Controls generation quality and consistency"
                             )
                             steps_t2v = gr.Slider(
-                                minimum=1, maximum=50, value=10, step=5,
+                                minimum=10, maximum=50, value=10, step=5,
                                 label="Inference Steps"
                             )
                     
@@ -969,7 +952,7 @@ def create_demo():
                             - **Conditioning Position:** 0 (first frame)
                             - **Noise Multiplier:** 0.2
                             - **LoRA Alpha:** 1.4
-                            - **Inference Steps:** 10
+                            - **Inference Steps:** 30
                             - **File Path:** ./demos/input_image.jpg
                             """)
                         
@@ -1005,7 +988,7 @@ def create_demo():
                             - **Conditioning Positions:** 0,20 (start and end frames)
                             - **Noise Multipliers:** 0.2,0.5
                             - **LoRA Alpha:** 1.4
-                            - **Inference Steps:** 10
+                            - **Inference Steps:** 30
                             - **File Paths:** ./demos/start_frame.jpg, ./demos/end_frame.jpg
                             """)
                         
@@ -1035,7 +1018,7 @@ def create_demo():
                             - **Conditioning Positions:** 0,1,2,3 (first 4 latent frames)
                             - **Noise Multipliers:** 0.0,0.3,0.4,0.5
                             - **LoRA Alpha:** 1.4
-                            - **Inference Steps:** 10
+                            - **Inference Steps:** 30
                             - **Task:** Video Extension (using first 13 frames as conditioning)
                             - **File Path:** ./demos/input_video.mp4
                             """)
@@ -1064,7 +1047,7 @@ def create_demo():
                             gr.Markdown("""
                             **Settings Used:**
                             - **LoRA Alpha:** 1.4
-                            - **Inference Steps:** 10
+                            - **Inference Steps:** 30
                             - **Negative Prompt:** "Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality..."
                             - **Task:** Pure Text-to-Video Generation (81 frames)
                             - **File Path:** ./assets/t2v_output.mp4
@@ -1208,44 +1191,10 @@ def create_demo():
     return demo
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Pusa V1.0 - AI Video Generation")
-    
-    # CLI-specific arguments
-    parser.add_argument('--cli', action='store_true', help='Run in command-line mode without launching Gradio UI.')
-    parser.add_argument('--image_path', type=str, help='Path to the input image for I2V generation.')
-    parser.add_argument('--prompt', type=str, help='Text prompt for video generation.')
-    parser.add_argument('--noise_multiplier', type=float, default=0.2, help='Noise multiplier for I2V (0.0-1.0).')
-    parser.add_argument('--lora_alpha', type=float, default=1.4, help='LoRA alpha for temporal consistency (0.5-3.0).')
-    parser.add_argument('--steps', type=int, default=10, help='Number of inference steps (1-50).')
-    parser.add_argument('--negative_prompt', type=str, default="Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards", help='Negative prompt.')
-
-    args = parser.parse_args()
-
-    # If --cli or other specific args are provided, run in CLI mode
-    if args.cli or args.image_path:
-        if not args.image_path or not args.prompt:
-            parser.error("--image_path and --prompt are required for CLI I2V generation.")
-        
-        print("--- Running Pusa V1.0 in Command-Line Mode (I2V) ---")
-        demo_instance = PusaVideoDemo()
-        video_file, message = demo_instance.generate_i2v_video(
-            image_path=args.image_path,
-            prompt=args.prompt,
-            noise_multiplier=args.noise_multiplier,
-            lora_alpha=args.lora_alpha,
-            num_inference_steps=args.steps,
-            negative_prompt=args.negative_prompt,
-            progress=None  # Disable Gradio progress bar in CLI mode
-        )
-        print(f"\n--- Generation Complete ---")
-        print(message)
-    else:
-        # Launch Gradio UI by default
-        print("--- Launching Gradio UI ---")
-        demo = create_demo()
-        demo.launch(
-            server_name="127.0.0.1",
-            server_port=7860,
-            share=False,
-            show_error=True
-        ) 
+    demo = create_demo()
+    demo.launch(
+        server_name="127.0.0.1",
+        server_port=7860,
+        share=False,
+        show_error=True
+    ) 
