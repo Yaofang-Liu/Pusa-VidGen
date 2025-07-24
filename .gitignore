@@ -1,0 +1,18 @@
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+# Virtualenvs
+.env
+.venv
+# IDE settings
+.vscode/
+.idea/
+# OS metadata
+.DS_Store
+.ipynb_checkpoints/
+# pytest cache
+.pytest_cache/ 
