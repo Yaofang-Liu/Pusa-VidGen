@@ -2,7 +2,7 @@
     <img src="https://github.com/Yaofang-Liu/Pusa-VidGen/blob/f867c49d9570b88e7bbce6e25583a0ad2417cdf7/icon.png" width="70"/>
 </p>
 
-# Pusa: Thousands Timesteps Video Diffusion Model
+# Pusa: Thousands Timesteps Video Diffusion Model (ICLR 2026)
 <p align="center">
     <a href="https://yaofang-liu.github.io/Pusa_Web/"><img alt="Project Page" src="https://img.shields.io/badge/Project-Page-blue?style=for-the-badge"></a>
     <a href="https://arxiv.org/abs/2507.16116"><img alt="Technical Report" src="https://img.shields.io/badge/Technical_Report-📜-B31B1B?style=for-the-badge"></a>
