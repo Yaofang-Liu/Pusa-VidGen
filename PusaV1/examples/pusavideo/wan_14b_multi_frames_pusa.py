@@ -57,7 +57,23 @@ def main():
     cond_pos_list = [int(x.strip()) for x in args.cond_position.split(',')]
     noise_mult_list = [float(x.strip()) for x in args.noise_multipliers.split(',')]
     
-    images = [Image.open(p).convert("RGB").resize((1280, 720), Image.LANCZOS) for p in args.image_paths]
+    # Determine target dimensions from the first image
+    first_img_path = args.image_paths[0]
+    first_img = Image.open(first_img_path)
+    w, h = first_img.size
+    
+    # Resize height and width to the multiplier of 16
+    target_w = (w // 16) * 16
+    target_h = (h // 16) * 16
+    
+    print(f"Target resolution: {target_w}x{target_h}")
+
+    images = []
+    for p in args.image_paths:
+        img = Image.open(p).convert("RGB")
+        # Resize to target dimensions
+        img_resized = img.resize((target_w, target_h), Image.LANCZOS)
+        images.append(img_resized)
 
     if len(images) != len(cond_pos_list) or len(images) != len(noise_mult_list):
         raise ValueError("The number of --image_paths, --cond_position, and --noise_multipliers must be the same.")
@@ -69,10 +85,10 @@ def main():
 
     video = pipe(
         prompt=args.prompt,
-        negative_prompt="Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards",
+        negative_prompt=args.negative_prompt,
         multi_frame_images=multi_frame_images,
         num_inference_steps=args.num_inference_steps,
-        height=720, width=1280, num_frames=81,
+        height=target_h, width=target_w, num_frames=81,
         seed=0, tiled=True,
         cfg_scale=args.cfg_scale
     )
