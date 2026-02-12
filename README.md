@@ -98,6 +98,8 @@ We are excited to release **Pusa V1.0**, a groundbreaking paradigm that leverage
 
 
 ## News 
+#### 🔥🔥🔥 2026.01: Pusa was accepted at ICLR 2026 🎉
+
 #### 🔥🔥🔥 2025.09: Pusa-Wan2.2 & LightX2V Acceleration Support Released!
 - **🏗️ MoE DiT Support**: Added support for Wan2.2 models with separate high-noise and low-noise DiT architecture
 - **⚡ LightX2V Integration**: Lightning-fast 4-step inference with maintained quality (great speed improvement)
@@ -489,6 +491,7 @@ If you use this work in your project, please cite the following references.
   year={2024}
 }
 ```
+
 
 
 
